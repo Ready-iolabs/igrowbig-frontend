@@ -4,7 +4,13 @@ import axios from "axios";
 
 // Get the domain and decide whether to use HTTP or HTTPS
 const getBaseUrl = () => {
-  const domain = 'begrat.com'; // Your domain name
+  let domain = 'begrat.com'; // Default domain name for production
+
+  // Check if the app is running in staging environment
+  if (window.location.hostname === "stage.begrat.com") {
+    domain = 'stage.begrat.com'; // Use the staging domain
+  }
+
   if (process.env.NODE_ENV === "production") {
     // For production, check if SSL is installed
     return window.location.protocol === "https:" 
