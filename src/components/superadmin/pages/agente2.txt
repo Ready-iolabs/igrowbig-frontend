@@ -53,10 +53,9 @@ const Agents = () => {
           last_name: user.name.split(' ')[1] || '',
           email_id: user.email,
           website_link: user.website_link || '',
-          subscription_status: user.subscription_status || 'active',
+          subscription_status: user.status,
           tenant_id: user.tenant_id,
-          plan: user.subscription_plan || 'none',
-          dns_status: user.dns_status || 'pending',
+          plan: user.plan || 'none',
         }));
         setTenantUsers(mappedUsers);
         showSuccessToast(response.message || 'Tenant users fetched successfully');
@@ -136,7 +135,6 @@ const Agents = () => {
       const response = await put(`/admin/settings/${selectedAgent.tenant_id}`, formData, true);
       setSettings(response.settings);
       showSuccessToast(response.message || 'Settings updated successfully');
-      await fetchTenantUsers(); // Refresh user list
       closeProfile();
     } catch (err) {
       setValidationErrors(err.errors || [{ msg: err.message || 'Failed to update settings' }]);
@@ -157,11 +155,10 @@ const Agents = () => {
     setWebsiteData((prev) => {
       const updated = { ...prev, [name]: files ? files[0] : value };
       if (['domain_type', 'sub_domain', 'primary_domain_name'].includes(name)) {
-        const protocol = window.location.protocol; // http: or https:
         updated.website_link =
           updated.domain_type === 'sub_domain' && updated.sub_domain
-            ? `${protocol}//${updated.sub_domain}.begrat.com`
-            : `${protocol}//${updated.primary_domain_name || 'begrat.com'}`;
+            ? `https://${updated.sub_domain}.begrat.com`
+            : `https://${updated.primary_domain_name || 'begrat.com'}`;
       }
       return updated;
     });
@@ -205,10 +202,7 @@ const Agents = () => {
       if (websiteData.domain_type === 'sub_domain' && !websiteData.sub_domain) {
         errors.push({ msg: 'Sub-domain is required for sub-domain type' });
       }
-      if (
-        websiteData.domain_type === 'custom_domain' &&
-        !websiteData.primary_domain_name.match(/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
-      ) {
+      if (websiteData.domain_type === 'custom_domain' && !websiteData.primary_domain_name.match(/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)) {
         errors.push({ msg: 'Invalid primary domain name' });
       }
     }
@@ -256,9 +250,7 @@ const Agents = () => {
               <Label htmlFor="domain_type">Domain Type</Label>
               <Select
                 value={websiteData.domain_type}
-                onValueChange={(value) =>
-                  handleWebsiteDataChange({ target: { name: 'domain_type', value } })
-                }
+                onValueChange={(value) => handleWebsiteDataChange({ target: { name: 'domain_type', value } })}
               >
                 <SelectTrigger id="domain_type">
                   <SelectValue />
@@ -270,28 +262,19 @@ const Agents = () => {
               </Select>
             </div>
             <div>
-              <Label htmlFor="primary_domain_name">
-                Primary Domain Name <span className="text-red-500">*</span>
-              </Label>
+              <Label htmlFor="primary_domain_name">Primary Domain Name <span className="text-red-500">*</span></Label>
               <Input
                 id="primary_domain_name"
                 name="primary_domain_name"
                 value={websiteData.primary_domain_name}
                 onChange={handleWebsiteDataChange}
-                placeholder="e.g., mydomain.com"
+                placeholder="e.g., begrat.com"
                 disabled={loading || websiteData.domain_type === 'sub_domain'}
               />
               {websiteData.domain_type === 'custom_domain' && (
-                <div className="mt-2 p-4 bg-gray-50 rounded-md">
-                  <p className="text-sm text-gray-700 font-medium">DNS Setup Instructions:</p>
-                  <p className="text-sm text-gray-600 mt-1">
-                    To use your custom domain, configure an A record in your DNS settings pointing to:
-                  </p>
-                  <p className="text-sm font-mono text-gray-800 mt-1">139.59.3.58</p>
-                  <p className="text-sm text-gray-600 mt-1">
-                    This may take up to 48 hours to propagate. Check the DNS status below.
-                  </p>
-                </div>
+                <p className="text-sm text-gray-500 mt-1">
+                  Set an A record to {import.meta.env.VITE_SERVER_IP || '139.59.3.58'}.
+                </p>
               )}
             </div>
             <div>
@@ -303,13 +286,11 @@ const Agents = () => {
                 name="sub_domain"
                 value={websiteData.sub_domain}
                 onChange={handleWebsiteDataChange}
-                placeholder="e.g., priti"
+                placeholder="e.g., khushi"
                 disabled={websiteData.domain_type !== 'sub_domain' || loading}
               />
               {websiteData.domain_type === 'sub_domain' && (
-                <p className="text-sm text-gray-500 mt-1">
-                  Your store: {websiteData.sub_domain}.begrat.com
-                </p>
+                <p className="text-sm text-gray-500 mt-1">Your store: {websiteData.sub_domain}.begrat.com</p>
               )}
             </div>
             <div>
@@ -328,13 +309,9 @@ const Agents = () => {
                   }[websiteData.dns_status] || 'bg-gray-100 text-gray-800'
                 }
               >
-                {websiteData.dns_status === 'verified'
-                  ? '✅ Active'
-                  : websiteData.dns_status === 'unverified'
-                  ? '❌ Unverified'
-                  : websiteData.dns_status === 'error'
-                  ? '⚠️ Error'
-                  : '⏳ Pending'}
+                {websiteData.dns_status === 'verified' ? '✅ Active' :
+                  websiteData.dns_status === 'unverified' ? '❌ Unverified' :
+                    websiteData.dns_status === 'error' ? '⚠️ Error' : '⏳ Pending'}
               </Badge>
             </div>
           </div>
@@ -346,9 +323,7 @@ const Agents = () => {
             <p className="text-sm text-gray-500">This information will appear on your website’s Contact page.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="first_name">
-                  First Name <span className="text-red-500">*</span>
-                </Label>
+                <Label htmlFor="first_name">First Name <span className="text-red-500">*</span></Label>
                 <Input
                   id="first_name"
                   name="first_name"
@@ -369,9 +344,7 @@ const Agents = () => {
               </div>
             </div>
             <div>
-              <Label htmlFor="email_id">
-                Email ID <span className="text-red-500">*</span>
-              </Label>
+              <Label htmlFor="email_id">Email ID <span className="text-red-500">*</span></Label>
               <Input
                 id="email_id"
                 name="email_id"
@@ -420,13 +393,9 @@ const Agents = () => {
         return (
           <div className="space-y-6">
             {renderValidationErrors()}
-            <p className="text-sm text-gray-500">
-              Use a logo with your site name (PNG/JPG, max 4MB, 170px × 65px recommended).
-            </p>
+            <p className="text-sm text-gray-500">Use a logo with your site name (PNG/JPG, max 4MB, 170px × 65px recommended).</p>
             <div>
-              <Label htmlFor="site_name">
-                Site Name <span className="text-red-500">*</span>
-              </Label>
+              <Label htmlFor="site_name">Site Name <span className="text-red-500">*</span></Label>
               <Input
                 id="site_name"
                 name="site_name"
@@ -473,7 +442,7 @@ const Agents = () => {
                 name="nht_website_link"
                 value={websiteData.nht_website_link}
                 onChange={handleWebsiteDataChange}
-                placeholder="e.g., http://begrat.com"
+                placeholder="e.g., https://begrat.com"
                 disabled={loading}
               />
             </div>
@@ -484,7 +453,7 @@ const Agents = () => {
                 name="nht_store_link"
                 value={websiteData.nht_store_link}
                 onChange={handleWebsiteDataChange}
-                placeholder="e.g., http://begrat.com"
+                placeholder="e.g., https://begrat.com"
                 disabled={loading}
               />
             </div>
@@ -495,7 +464,7 @@ const Agents = () => {
                 name="nht_joining_link"
                 value={websiteData.nht_joining_link}
                 onChange={handleWebsiteDataChange}
-                placeholder="e.g., http://begrat.com"
+                placeholder="e.g., https://begrat.com"
                 disabled={loading}
               />
             </div>
@@ -540,8 +509,8 @@ const Agents = () => {
                   {websiteData.site_logo
                     ? websiteData.site_logo.name
                     : settings?.site_logo_url
-                    ? 'Current logo set'
-                    : 'N/A'}
+                      ? 'Current logo set'
+                      : 'N/A'}
                 </span>
               </div>
             </div>
@@ -637,10 +606,10 @@ const Agents = () => {
                             agent.dns_status === 'verified'
                               ? 'bg-green-100 text-green-800'
                               : agent.dns_status === 'unverified'
-                              ? 'bg-red-100 text-red-800'
-                              : agent.dns_status === 'error'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-gray-100 text-gray-800'
+                                ? 'bg-red-100 text-red-800'
+                                : agent.dns_status === 'error'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-gray-100 text-gray-800'
                           }
                         >
                           {agent.dns_status || 'Pending'}
@@ -749,9 +718,10 @@ const Agents = () => {
                     {steps.map((step, idx) => (
                       <div key={idx} className="flex-1 text-center">
                         <div
-                          className={`w-8 h-8 rounded-full mx-auto flex items-center justify-center text-sm font-medium ${
-                            idx <= websiteStep ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-                          }`}
+                          className={`w-8 h-8 rounded-full mx-auto flex items-center justify-center text-sm font-medium ${idx <= websiteStep
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-200 text-gray-600'
+                            }`}
                         >
                           {idx + 1}
                         </div>
