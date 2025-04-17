@@ -1,0 +1,523 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import {
+  SidebarProvider,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
+} from '@/components/ui/sidebar'; // Adjust based on your shadcn/ui setup
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '@/components/ui/collapsible';
+import {
+  ChevronDown,
+  ChevronRight,
+  Home,
+  Package,
+  Award,
+  UserPlus,
+  MessageSquare,
+  FileText,
+  Users,
+  Globe,
+  AtSign,
+  Share2,
+  FileCode,
+  Mail,
+  Bell,
+  LogOut,
+  Settings,
+  HelpCircle,
+  BookCopy,
+} from 'lucide-react';
+import Footer from './Footer';
+
+// Centralized color palette for consistency
+const theme = {
+  primary: { main: '#101010', dark: '#000000', light: '#303030', hover: '#202020' },
+  secondary: { main: '#FFFFFF', dark: '#E0E0E0', light: '#F8F8F8', hover: '#F0F0F0' },
+  accent: { main: '#505050', light: '#D0D0D0', ultraLight: '#F5F5F5' },
+  text: { primary: '#101010', secondary: '#505050', light: '#909090', onDark: '#E0E0E0' },
+};
+
+// Menu configuration for sidebar items
+const menuConfig = [
+  {
+    id: 'home',
+    label: 'Home',
+    icon: Home,
+    subItems: [
+      { to: '/backoffice/slider-banners', label: 'Sliders Banner' },
+      { to: '/backoffice/welcome-message', label: 'Welcome Message' },
+      { to: '/backoffice/introduction', label: 'Introduction' },
+      { to: '/backoffice/about-company', label: 'About Company' },
+      { to: '/backoffice/opportunity-video', label: 'Opportunity Video' },
+      { to: '/backoffice/support-message', label: 'Support Message' },
+    ],
+  },
+  {
+    id: 'products',
+    label: 'Products',
+    icon: Package,
+    subItems: [
+      { to: '/backoffice/about-page', label: 'About Page' },
+      { to: '/backoffice/categories', label: 'Categories' },
+      { to: '/backoffice/products-list', label: 'Products' },
+    ],
+  },
+  {
+    id: 'opportunity',
+    label: 'Opportunity',
+    icon: Award,
+    subItems: [
+      { to: '/backoffice/opportunity/page-banner', label: 'Page Banner' },
+      { to: '/backoffice/opportunity/page-content', label: 'Page Content' },
+      { to: '/backoffice/opportunity/video-section', label: 'Video Section' },
+      { to: '/backoffice/opportunity/compensation-plan', label: 'Compensation Plan' },
+    ],
+  },
+  {
+    id: 'join-us',
+    label: 'Join Us',
+    icon: UserPlus,
+    subItems: [
+      { to: '/backoffice/join-us/page-banner', label: 'Page Banner' },
+      { to: '/backoffice/join-us/page-content', label: 'Page Content' },
+    ],
+  },
+  { to: '/backoffice/contact-us', label: 'Contact Us', icon: MessageSquare },
+  { to: '/backoffice/blogs', label: 'Blogs', icon: FileText },
+  { to: '/backoffice/leaders', label: 'Leaders', icon: Users },
+  { to: '/backoffice/global-opportunity', label: 'Global Opportunity', icon: Globe },
+  { to: '/backoffice/lead-capture', label: 'Lead Capture Page', icon: AtSign },
+  { to: '/backoffice/social-media', label: 'Social Media', icon: Share2 },
+  { to: '/backoffice/footer-disclaimer', label: 'Footer Disclaimer', icon: FileCode },
+  { to: '/backoffice/subscriber-message', label: 'Subscriber Message', icon: Mail },
+  { to: '/backoffice/faqs', label: 'FAQs', icon: HelpCircle },
+  { to: '/backoffice/testimonials', label: 'Testimonials', icon: BookCopy },
+  { to: '/backoffice/settings', label: 'Settings', icon: Settings },
+];
+
+// Reusable Sidebar Item Component
+const SidebarItem = ({ item, isActive, toggleMenu, location }) => {
+  const { id, label, icon: Icon, subItems, to } = item;
+
+  const linkStyles = (isActive) => ({
+    backgroundColor: isActive ? `${theme.accent.light}20` : 'transparent',
+    borderLeft: isActive ? `4px solid ${theme.primary.main}` : 'transparent',
+    color: isActive ? theme.primary.main : theme.text.primary,
+    paddingLeft: isActive ? '0.5rem' : '0.75rem',
+  });
+
+  if (subItems) {
+    return (
+      <Collapsible open={isActive} onOpenChange={() => toggleMenu(id)} className="border-b" style={{ borderColor: theme.accent.light }}>
+        <SidebarMenuItem className="m-0 p-0">
+          <CollapsibleTrigger asChild>
+            <SidebarMenuButton
+              className="w-full text-left p-3 transition-all duration-300 ease-in-out flex items-center justify-between"
+              style={{ color: theme.text.primary, backgroundColor: isActive ? `${theme.accent.light}20` : 'transparent' }}
+            >
+              <div className="flex items-center gap-3">
+                <Icon size={18} style={{ color: isActive ? theme.primary.main : theme.text.secondary }} />
+                <span style={{ color: isActive ? theme.primary.main : theme.text.primary }}>{label}</span>
+              </div>
+              {isActive ? (
+                <ChevronDown size={18} style={{ color: theme.primary.main }} />
+              ) : (
+                <ChevronRight size={18} style={{ color: theme.text.secondary }} />
+              )}
+            </SidebarMenuButton>
+          </CollapsibleTrigger>
+          <CollapsibleContent
+            className="transition-all duration-300 ease-in-out"
+            style={{
+              maxHeight: isActive ? '1000px' : '0px',
+              overflow: 'hidden',
+              opacity: isActive ? 1 : 0,
+              transform: isActive ? 'translateY(0)' : 'translateY(-10px)',
+            }}
+          >
+            <SidebarMenuSub>
+              {subItems.map((subItem, index) => (
+                <SidebarMenuSubItem key={index}>
+                  <SidebarMenuSubButton asChild>
+                    <NavLink
+                      to={subItem.to}
+                      className={({ isActive }) =>
+                        `block p-3 pl-10 transition-all duration-300 ease-in-out ${isActive ? 'border-l-4' : ''}`
+                      }
+                      style={({ isActive }) => linkStyles(isActive)}
+                    >
+                      {subItem.label}
+                    </NavLink>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              ))}
+            </SidebarMenuSub>
+          </CollapsibleContent>
+        </SidebarMenuItem>
+      </Collapsible>
+    );
+  }
+
+  return (
+    <SidebarMenuItem className="m-0 p-0 border-b" style={{ borderColor: theme.accent.light }}>
+      <SidebarMenuButton asChild>
+        <NavLink
+          to={to}
+          className={({ isActive }) =>
+            `w-full text-left p-3 transition-all duration-300 ease-in-out flex items-center gap-3 ${
+              isActive ? 'font-medium border-l-4 pl-2' : 'hover:border-l-4 hover:pl-2'
+            }`
+          }
+          style={({ isActive }) => linkStyles(isActive)}
+        >
+          <Icon
+            size={18}
+            style={{
+              color: location.pathname.includes(to.split('/').pop()) ? theme.primary.main : theme.text.secondary,
+              transform: location.pathname.includes(to.split('/').pop()) ? 'scale(1.1)' : 'scale(1)',
+            }}
+          />
+          <span>{label}</span>
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+};
+
+// Notification Dropdown Component
+const NotificationDropdown = ({ notifications, isOpen, toggle, ref }) => (
+  <div className="relative" ref={ref}>
+    <button
+      className="p-2 rounded-full transition-colors duration-300 ease-in-out hover:bg-opacity-10"
+      style={{ color: theme.text.secondary }}
+      onClick={toggle}
+    >
+      <Bell className="w-6 h-6" />
+      <span
+        className="absolute top-1 right-1 h-4 w-4 rounded-full flex items-center justify-center text-xs text-white animate-pulse"
+        style={{ backgroundColor: theme.primary.main }}
+      >
+        {notifications.length}
+      </span>
+    </button>
+    {isOpen && (
+      <div
+        className="absolute right-0 mt-2 w-64 rounded-md shadow-lg overflow-hidden z-20 border animate-fade-in"
+        style={{ backgroundColor: theme.secondary.main, borderColor: theme.accent.light }}
+      >
+        <div
+          className="px-4 py-2 border-b flex justify-between items-center"
+          style={{ backgroundColor: theme.secondary.light, borderColor: theme.accent.light }}
+        >
+          <h3 className="text-sm font-semibold" style={{ color: theme.text.primary }}>
+            Notifications
+          </h3>
+          <span
+            className="text-xs px-2 py-0.5 rounded-full text-white"
+            style={{ backgroundColor: theme.primary.main }}
+          >
+            {notifications.length} new
+          </span>
+        </div>
+        <div className="max-h-64 overflow-y-auto">
+          {notifications.map((notification) => (
+            <div
+              key={notification.id}
+              className="px-4 py-3 border-b hover:bg-opacity-10 transition-colors duration-200"
+              style={{ borderColor: theme.accent.light }}
+            >
+              <p className="text-sm" style={{ color: theme.text.primary }}>
+                {notification.text}
+              </p>
+              <p className="text-xs mt-1" style={{ color: theme.text.light }}>
+                {notification.time}
+              </p>
+            </div>
+          ))}
+        </div>
+        <div className="px-4 py-2 text-center" style={{ backgroundColor: theme.secondary.light }}>
+          <button
+            className="text-sm hover:text-opacity-80 transition-colors duration-200"
+            style={{ color: theme.primary.main }}
+          >
+            View all notifications
+          </button>
+        </div>
+      </div>
+    )}
+  </div>
+);
+
+// Profile Dropdown Component
+const ProfileDropdown = ({ isOpen, toggle, ref }) => (
+  <div className="relative" ref={ref}>
+    <button
+      className="flex items-center gap-2 p-1 rounded-full hover:bg-opacity-10 transition-colors duration-200 focus:outline-none"
+      onClick={toggle}
+    >
+      <div
+        className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold shadow-md"
+        style={{ backgroundColor: theme.primary.main }}
+      >
+        A
+      </div>
+      <span className="hidden md:block text-sm font-medium" style={{ color: theme.text.primary }}>
+        Admin
+      </span>
+      <ChevronDown size={16} className="hidden md:block" style={{ color: theme.text.secondary }} />
+    </button>
+    {isOpen && (
+      <div
+        className="absolute right-0 mt-2 w-48 rounded-md shadow-lg overflow-hidden z-20 border animate-fade-in"
+        style={{ backgroundColor: theme.secondary.main, borderColor: theme.accent.light }}
+      >
+        <div className="px-4 py-3 border-b" style={{ borderColor: theme.accent.light }}>
+          <p className="text-sm font-medium" style={{ color: theme.text.primary }}>
+            Admin User
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: theme.text.light }}>
+            admin@igrowbig.com
+          </p>
+        </div>
+        <button
+          className="w-full px-4 py-2 text-left text-sm hover:bg-opacity-10 transition-colors duration-200 flex items-center gap-2"
+          style={{ color: theme.text.primary }}
+          onClick={() => {
+            localStorage.clear();
+            window.location.href = '/backoffice-login';
+          }}
+        >
+          <LogOut size={16} style={{ color: theme.text.secondary }} />
+          <span>Logout</span>
+        </button>
+      </div>
+    )}
+  </div>
+);
+
+const BackofficeLayout = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeMenu, setActiveMenu] = useState(null);
+  const [pageTitle, setPageTitle] = useState('Dashboard');
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const location = useLocation();
+  const profileRef = useRef(null);
+  const notificationRef = useRef(null);
+
+  // Sample notifications (could be fetched from an API)
+  const notifications = [
+    { id: 1, text: 'New product added', time: '2 min ago' },
+    { id: 2, text: 'New user registered', time: '1 hour ago' },
+    { id: 3, text: 'System update completed', time: 'Yesterday' },
+  ];
+
+  // Determine active menu based on current route
+  useEffect(() => {
+    const path = location.pathname.toLowerCase();
+    const menuMap = {
+      home: ['/home-page', '/slider-banners', '/welcome-message', '/introduction', '/about-company', '/opportunity-video', '/support-message'],
+      products: ['/about-page', '/categories', '/products-list'],
+      opportunity: ['/opportunity', '/opportunity/page-banner', '/opportunity/page-content', '/opportunity/video-section', '/opportunity/compensation-plan'],
+      'join-us': ['/join-us', '/join-us/page-banner', '/join-us/page-content'],
+    };
+
+    const active = Object.keys(menuMap).find((key) =>
+      menuMap[key].some((route) => path.includes(route))
+    );
+    setActiveMenu(active || null);
+  }, [location]);
+
+  // Set page title based on current route
+  useEffect(() => {
+    const pathSegment = location.pathname.split('/').pop();
+    const title = pathSegment
+      ? pathSegment
+          .split('-')
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ')
+      : 'Dashboard';
+    setPageTitle(location.pathname === '/backoffice' ? 'Dashboard' : title);
+  }, [location]);
+
+  // Handle clicks outside dropdowns to close them
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileMenuOpen(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setIsNotificationOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleMenu = (menuId) => {
+    setActiveMenu((prev) => (prev === menuId ? null : menuId));
+  };
+
+  return (
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: theme.secondary.light }}>
+      {/* Sidebar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-all duration-300 ease-in-out border-r md:translate-x-0 shadow-lg ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+        style={{ backgroundColor: theme.secondary.main, borderColor: theme.accent.light }}
+      >
+        <div
+          className="h-16 flex items-center justify-between px-4 border-b"
+          style={{ background: theme.primary.main, borderColor: theme.primary.light }}
+        >
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-white rounded-md flex items-center justify-center">
+              <span style={{ color: theme.primary.main }} className="font-bold text-lg">
+                IG
+              </span>
+            </div>
+            <h1 className="text-xl font-medium text-white">Backoffice Panel</h1>
+          </div>
+          <button
+            className="md:hidden p-2 rounded-md hover:bg-opacity-20 hover:bg-white transition-colors"
+            onClick={() => setIsSidebarOpen(false)}
+          >
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="h-[calc(100vh-4rem)] overflow-y-auto">
+          <SidebarProvider>
+            <SidebarContent className="p-0">
+              <SidebarMenu>
+                <SidebarItem
+                  item={{ to: '/backoffice/dashboard', label: 'Dashboard', icon: Home }}
+                  isActive={location.pathname.includes('/dashboard')}
+                  toggleMenu={toggleMenu}
+                  location={location}
+                />
+                {menuConfig.map((item) => (
+                  <SidebarItem
+                    key={item.id || item.to}
+                    item={item}
+                    isActive={activeMenu === item.id || location.pathname.includes(item.to?.split('/').pop())}
+                    toggleMenu={toggleMenu}
+                    location={location}
+                  />
+                ))}
+              </SidebarMenu>
+            </SidebarContent>
+          </SidebarProvider>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex flex-col flex-1 md:ml-64">
+        <header
+          className="h-16 border-b flex items-center justify-between px-4 md:px-6 sticky top-0 z-10 shadow-sm"
+          style={{ backgroundColor: theme.secondary.main, borderColor: theme.accent.light }}
+        >
+          <div className="flex items-center">
+            <button
+              className="mr-4 p-2 rounded-md hover:bg-opacity-10 md:hidden transition-colors duration-200"
+              style={{ color: theme.text.secondary }}
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
+              </svg>
+            </button>
+            <h2 className="text-lg font-semibold animate-fade-in" style={{ color: theme.text.primary }}>
+              {pageTitle}
+            </h2>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <div className="hidden md:flex items-center relative">
+              <input
+                type="text"
+                placeholder="Search..."
+                className="rounded-full py-1 px-4 pl-8 text-sm border focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-300 w-40 focus:w-60"
+                style={{
+                  borderColor: theme.accent.light,
+                  color: theme.text.primary,
+                  backgroundColor: theme.secondary.main,
+                }}
+              />
+              <svg
+                className="w-4 h-4 absolute left-2.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                style={{ color: theme.text.light }}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+
+            <NotificationDropdown
+              notifications={notifications}
+              isOpen={isNotificationOpen}
+              toggle={() => setIsNotificationOpen(!isNotificationOpen)}
+              ref={notificationRef}
+            />
+
+            <ProfileDropdown
+              isOpen={isProfileMenuOpen}
+              toggle={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+              ref={profileRef}
+            />
+          </div>
+        </header>
+
+        <main
+          className="flex-1 overflow-auto p-4 md:p-6 animate-fade-in"
+          style={{ backgroundColor: theme.secondary.light }}
+        >
+          <Outlet />
+        </main>
+
+        <Footer />
+      </div>
+
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden animate-fade-in"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Global CSS animations */}
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.3s ease-in-out;
+        }
+        .animate-pulse {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.7; }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default BackofficeLayout;
